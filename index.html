@@ -4,25 +4,50 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Boost Time Toolkit</title>
-
-    <!-- PWA manifest + theme -->
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#2563eb">
     <link rel="icon" href="./icons/icon-192.png">
-
     <style>
-      /* (CSS omitted here for brevity; full file available in the repo) */
+      /* Reset & sensible box model */
+      *,
+      *::before,
+      *::after { box-sizing: border-box; }
+      :root {
+        --bg: #f5f7fa; --card: #ffffff; --accent: #2563eb;
+        --muted: #6b7280; --border: #e6e9ee; color-scheme: light;
+      }
+      html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:var(--bg);color:#111827;-webkit-font-smoothing:antialiased}
+      .wrap{max-width:980px;margin:36px auto;padding:24px}
+      header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+      h1{margin:0;font-size:22px;color:#0f172a}
+      .muted{color:var(--muted);font-size:14px}
+      .tabs{display:flex;gap:10px;margin:18px 0;flex-wrap:wrap}
+      .tab{background:#eef2ff;border:1px solid var(--border);padding:10px 14px;border-radius:12px;cursor:pointer;transition:transform .08s ease,box-shadow .12s ease;font-weight:600}
+      .tab:hover{transform:translateY(-2px)}
+      .tab.active{background:var(--accent);color:white;border-color:rgba(37,99,235,.9);box-shadow:0 6px 18px rgba(37,99,235,.12)}
+      .card{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 8px 24px rgba(15,23,42,.04);border:1px solid #f0f3f8}
+      .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:12px}
+      label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+      input[type="number"]{width:100%;padding:12px 14px;border-radius:10px;border:1px solid #d1d5db;background:white;color:#0f172a;font-size:15px;outline:none;transition:box-shadow .12s ease,border-color .12s ease}
+      input[type="number"]:focus{border-color:rgba(37,99,235,.9);box-shadow:0 6px 18px rgba(37,99,235,.06)}
+      input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+      input[type="number"]{-moz-appearance:textfield}
+      .actions{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
+      button{background:var(--accent);color:white;border:0;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:700;font-size:14px;box-shadow:0 6px 14px rgba(37,99,235,.08)}
+      button.ghost{background:white;border:1px solid #e6e9ee;color:#374151;font-weight:600}
+      .result{margin-top:16px;padding:14px;border-radius:12px;background:#f0f4ff;border:1px solid #c7d2fe;color:#1e3a8a;font-size:15px;line-height:1.4}
+      pre{white-space:pre-wrap;margin:0}
+      footer{margin-top:14px;color:var(--muted);font-size:13px}
+      @media (max-width:520px){.wrap{padding:16px}.tab{padding:9px 12px;border-radius:10px}}
     </style>
   </head>
   <body>
     <div class="wrap">
       <header>
-        <div style="font-size: 30px; line-height: 1">🚀</div>
+        <div style="font-size:30px;line-height:1">🚀</div>
         <div>
           <h1>Boost Time Toolkit</h1>
-          <div class="muted">
-            Calculate finish times with or without Builder Potion (boost ×10).
-          </div>
+          <div class="muted">Calculate finish times with or without Builder Potion (boost ×10).</div>
         </div>
       </header>
 
@@ -34,12 +59,119 @@
 
       <div class="card">
         <div id="forms">
-          <!-- Forms and JS logic are included in the full repo -->
-          <!-- For the downloadable package, the full index.html contains everything -->
-          <p style="color:#6b7280">This downloadable package includes the full, PWA-ready index.html, manifest.json, sw.js and placeholder icons. Use it as your repo root for GitHub Pages.</p>
+          <div class="form" data-form="boost">
+            <div class="muted">Builder Potion multiplies your input time by ×10. Enter a real-time duration and see the boosted (potion) output.</div>
+            <div class="grid">
+              <div><label for="b_days">Days</label><input id="b_days" type="number" min="0" value="0" /></div>
+              <div><label for="b_hours">Hours</label><input id="b_hours" type="number" min="0" max="23" value="0" /></div>
+              <div><label for="b_minutes">Minutes</label><input id="b_minutes" type="number" min="0" max="59" value="0" /></div>
+              <div><label for="b_seconds">Seconds</label><input id="b_seconds" type="number" min="0" max="59" value="0" /></div>
+            </div>
+            <div class="actions"><button id="btn_boost">Compute Builder Potion Output (×10)</button><button class="ghost" id="btn_boost_copy">Copy Result</button></div>
+            <div id="boost_result" class="result" style="display:none"></div>
+          </div>
+
+          <div class="form" data-form="reverse" style="display:none">
+            <div class="muted">Given a <strong>boosted</strong> time (what the potion shows), this computes how much <em>real</em> time you actually need to wait and when the upgrade will finish using Builder Potion.</div>
+            <div class="grid">
+              <div><label for="r_days">Days (boosted)</label><input id="r_days" type="number" min="0" value="0" /></div>
+              <div><label for="r_hours">Hours (boosted)</label><input id="r_hours" type="number" min="0" max="23" value="3" /></div>
+              <div><label for="r_minutes">Minutes (boosted)</label><input id="r_minutes" type="number" min="0" max="59" value="0" /></div>
+              <div><label for="r_seconds">Seconds (boosted)</label><input id="r_seconds" type="number" min="0" max="59" value="0" /></div>
+            </div>
+            <div class="actions"><button id="btn_reverse">Compute Real Time & Finish (With Potion)</button><button class="ghost" id="btn_reverse_copy">Copy Result</button></div>
+            <div id="reverse_result" class="result" style="display:none"></div>
+          </div>
+
+          <div class="form" data-form="future" style="display:none">
+            <div class="muted">Add a normal (non-boosted) time delta to the current system time to see when the upgrade will finish <strong>without</strong> Builder Potion.</div>
+            <div class="grid">
+              <div><label for="f_days">Days</label><input id="f_days" type="number" min="0" value="0" /></div>
+              <div><label for="f_hours">Hours</label><input id="f_hours" type="number" min="0" max="23" value="1" /></div>
+              <div><label for="f_minutes">Minutes</label><input id="f_minutes" type="number" min="0" max="59" value="0" /></div>
+              <div><label for="f_seconds">Seconds</label><input id="f_seconds" type="number" min="0" max="59" value="0" /></div>
+            </div>
+            <div class="actions"><button id="btn_future">Show Finish Time (No Potion)</button><button class="ghost" id="btn_future_copy">Copy Result</button></div>
+            <div id="future_result" class="result" style="display:none"></div>
+          </div>
         </div>
-        <footer class="muted">Tip: Use the tabs to switch modes. • Builder Potion multiplies by ×10.</footer>
+        <footer class="muted">Tip: Use the tabs to switch modes. • Builder Potion multiplies by ×10. • "Finish Time With Builder Potion" converts boosted time back to the real wait and shows finish datetime. Results are local — nothing is sent anywhere.</footer>
       </div>
     </div>
+
+    <script>
+      function dhmsToSeconds(d,h,m,s){return Number(d)*86400+Number(h)*3600+Number(m)*60+Number(s)}
+      function secondsToDhms(total){total=Math.max(0,Math.round(total));const days=Math.floor(total/86400);total%=86400;const hours=Math.floor(total/3600);total%=3600;const minutes=Math.floor(total/60);const seconds=total%60;return{days,hours,minutes,seconds}}
+      function computeBoost(d,h,m,s,multiplier=10){const secs=dhmsToSeconds(d,h,m,s);const boostedSecs=Math.round(secs*multiplier);return secondsToDhms(boostedSecs)}
+      function computeReverse(d,h,m,s,multiplier=10){const boostedSecs=dhmsToSeconds(d,h,m,s);const realSecs=Math.round(boostedSecs/multiplier);const dhms=secondsToDhms(realSecs);const finish=new Date(Date.now()+realSecs*1000);return{dhms,finish}}
+      function computeFuture(d,h,m,s){const secs=dhmsToSeconds(d,h,m,s);const finish=new Date(Date.now()+secs*1000);return finish}
+
+      document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+        document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+        t.classList.add('active');
+        const which=t.dataset.tab;
+        document.querySelectorAll('.form').forEach(f=>f.style.display=f.dataset.form===which?'block':'none');
+      }));
+
+      document.getElementById('btn_boost').addEventListener('click',()=>{
+        const d=document.getElementById('b_days').value||0;
+        const h=document.getElementById('b_hours').value||0;
+        const m=document.getElementById('b_minutes').value||0;
+        const s=document.getElementById('b_seconds').value||0;
+        const res=computeBoost(d,h,m,s);
+        const el=document.getElementById('boost_result');
+        el.style.display='block';
+        el.innerHTML=`🚀 <strong>Builder Potion Output (×10)</strong><br>📅 <strong>${res.days}</strong> days  ⏱️ <strong>${res.hours}</strong> hours  🕒 <strong>${res.minutes}</strong> minutes  ⏳ <strong>${res.seconds}</strong> seconds`;
+      });
+
+      function fallbackCopy(text){prompt("Copy the result below (Ctrl/Cmd+C)",text)}
+
+      document.getElementById('btn_boost_copy').addEventListener('click',()=>{
+        const el=document.getElementById('boost_result');
+        if(el.style.display==='none')return alert('Compute first');
+        if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(el.innerText).then(()=>alert('Copied result')).catch(()=>fallbackCopy(el.innerText))}
+        else fallbackCopy(el.innerText);
+      });
+
+      document.getElementById('btn_reverse').addEventListener('click',()=>{
+        const d=document.getElementById('r_days').value||0;
+        const h=document.getElementById('r_hours').value||0;
+        const m=document.getElementById('r_minutes').value||0;
+        const s=document.getElementById('r_seconds').value||0;
+        const {dhms,finish}=computeReverse(d,h,m,s);
+        const el=document.getElementById('reverse_result');
+        el.style.display='block';
+        el.innerHTML=`🔧 <strong>Required Real Time (with Builder Potion)</strong><br>📅 <strong>${dhms.days}</strong> days  ⏱️ <strong>${dhms.hours}</strong> hours  🕒 <strong>${dhms.minutes}</strong> minutes  ⏳ <strong>${dhms.seconds}</strong> seconds<hr style="margin:8px 0;opacity:0.06">🕰️ <strong>Will finish on</strong><br>📅 ${finish.toLocaleDateString()}  ⏰ ${finish.toLocaleTimeString()}`;
+      });
+
+      document.getElementById('btn_reverse_copy').addEventListener('click',()=>{
+        const el=document.getElementById('reverse_result');
+        if(el.style.display==='none')return alert('Compute first');
+        if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(el.innerText).then(()=>alert('Copied result')).catch(()=>fallbackCopy(el.innerText))}
+        else fallbackCopy(el.innerText);
+      });
+
+      document.getElementById('btn_future').addEventListener('click',()=>{
+        const d=document.getElementById('f_days').value||0;
+        const h=document.getElementById('f_hours').value||0;
+        const m=document.getElementById('f_minutes').value||0;
+        const s=document.getElementById('f_seconds').value||0;
+        const finish=computeFuture(d,h,m,s);
+        const el=document.getElementById('future_result');
+        el.style.display='block';
+        el.innerHTML=`📅 <strong>Finish Time (No Potion)</strong><br>📅 <strong>${finish.toLocaleDateString()}</strong> ⏰ <strong>${finish.toLocaleTimeString()}</strong>`;
+      });
+
+      document.getElementById('btn_future_copy').addEventListener('click',()=>{
+        const el=document.getElementById('future_result');
+        if(el.style.display==='none')return alert('Compute first');
+        if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(el.innerText).then(()=>alert('Copied result')).catch(()=>fallbackCopy(el.innerText))}
+        else fallbackCopy(el.innerText);
+      });
+
+      if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').then(()=>console.log('Service Worker registered')).catch((err)=>console.warn('SW registration failed',err))}
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;console.log('PWA install ready')});
+    </script>
   </body>
 </html>
